@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 class Book(models.Model):
 
     title = models.CharField(max_length=255,verbose_name='Название')
-    author = models.CharField(max_length=200,default=None,blank=True)
+    author = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, related_name='books', null=True, blank=True, verbose_name='Автор')
     description = models.TextField(blank=True,verbose_name='Описание')
     time_create = models.DateTimeField(auto_now_add=True,verbose_name='Время создания',validators=[MinLengthValidator(5,message='Минимум 5 символов')])
     time_update = models.DateTimeField(auto_now=True,verbose_name='Время изменения')
@@ -17,7 +17,7 @@ class Book(models.Model):
     slug = models.SlugField(max_length=255,unique=True, db_index=True,verbose_name='Слаг')
     genres = models.ForeignKey('Genres', on_delete=models.PROTECT,related_name='book',verbose_name='Жанры')
     tags = models.ManyToManyField('Tags',blank=True, related_name='tags',verbose_name="Теги")
-    # author = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, related_name='posts', null=True, default=None)
+
 
 
 
@@ -70,21 +70,6 @@ class Tags (models.Model):
     class Meta:
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
-
-
-class Author(models.Model):
-    name = models.CharField(max_length=255, verbose_name="Имя автора")
-    biography = models.TextField(blank=True, verbose_name="Биография", null=True)
-    birth_date = models.DateField(null=True, blank=True, verbose_name="Дата рождения")
-    death_date = models.DateField(null=True, blank=True, verbose_name="Дата смерти")
-    photo = models.ImageField(upload_to='authors/%Y/%m/%d/', blank=True, null=True, verbose_name='Фото')
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = 'Автор'
-        verbose_name_plural = 'Авторы'
 
 
 class ReadingStatus(models.Model):

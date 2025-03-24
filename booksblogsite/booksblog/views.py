@@ -1,9 +1,9 @@
 from rest_framework import generics, permissions
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
-from .models import Book, ReadingStatus, Review, Genres, Tags, Author
+from .models import Book, ReadingStatus, Review, Genres, Tags
 from .serializers import BookSerializer, ReadingStatusSerializer, ReviewSerializer, GenresSerializer, \
-    TagsSerializer, AuthorSerializer
+    TagsSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
@@ -139,19 +139,4 @@ class BookDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]  # Позволяет анонимным пользователям читать, а зарегистрированным — редактировать и удалять
 
 
-# Представление для получения списка авторов и создания нового автора
-class AuthorListView(generics.ListCreateAPIView):
-    queryset = Author.objects.all()  # Список всех авторов
-    serializer_class = AuthorSerializer  # Используем сериализатор AuthorSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]  # Позволяет анонимным пользователям читать, а зарегистрированным — создавать авторов
 
-    def perform_create(self, serializer):
-        """Метод для создания автора, если нужно выполнить дополнительную логику"""
-        serializer.save()  # Создаем автора с помощью сериализатора
-
-
-# Представление для получения, обновления и удаления автора
-class AuthorDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Author.objects.all()  # Получаем конкретного автора
-    serializer_class = AuthorSerializer  # Используем сериализатор AuthorSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]  # Позволяет анонимным пользователям читать, а зарегистрированным — редактировать и удалять

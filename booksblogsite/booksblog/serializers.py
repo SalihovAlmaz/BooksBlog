@@ -1,15 +1,12 @@
 from rest_framework import serializers
-from .models import Book, Genres, Tags, ReadingStatus, Review, Author
+from .models import Book, Genres, Tags, ReadingStatus, Review
 from django.contrib.auth import get_user_model
 
 class BookSerializer(serializers.ModelSerializer):
-    author_name = serializers.CharField(source='author.username', read_only=True)
-    genres_name = serializers.CharField(source='cat.name', read_only=True)
-    genres = serializers.StringRelatedField(many=True, source='genre.name')  # Список жанров
 
     class Meta:
         model = Book
-        fields = ['id', 'title', 'author_name', 'description', 'time_create', 'time_update', 'photo', 'slug', 'genres_name', 'genres']
+        fields = ['id', 'title', 'description', 'time_create', 'time_update', 'photo', 'slug', 'tags', 'genres']
         read_only_fields = ['time_create', 'time_update']
 
     def validate_title(self, value):
@@ -70,7 +67,4 @@ class TagsSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
 
-class AuthorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Author
-        fields = ['id', 'name', 'biography', 'birth_date', 'death_date', 'photo']
+
