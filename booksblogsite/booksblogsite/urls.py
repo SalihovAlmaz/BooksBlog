@@ -1,21 +1,18 @@
-
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
-from booksblog.views import BookListCreateView, BookDetailView, ReadingStatusListCreateView, ReadingStatusDetailView, \
-    ReviewListCreateView, ReviewDeleteView, GenresListCreateView, GenresDetailView, TagsListCreateView, \
-    TagsDetailView
+from booksblog.views import BookViewSet, ReadingStatusViewSet, ReviewViewSet, GenresViewSet, TagsViewSet
+
+router = DefaultRouter()
+router.register(r'books', BookViewSet, basename='book')
+router.register(r'reading-status', ReadingStatusViewSet, basename='reading-status')
+router.register(r'books/(?P<book_id>[^/.]+)/reviews', ReviewViewSet, basename='review')
+router.register(r'genres', GenresViewSet, basename='genre')
+router.register(r'tags', TagsViewSet, basename='tag')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', BookListCreateView.as_view(), name='book-list-create'),
-    path('books/<slug:slug>/', BookDetailView.as_view(), name='book-detail'),
-    path('reading-status/', ReadingStatusListCreateView.as_view(), name='reading-status-list-create'),
-    path('reading-status/<int:pk>/', ReadingStatusDetailView.as_view(), name='reading-status-detail'),
-    path('books/<int:book_id>/reviews/', ReviewListCreateView.as_view(), name='review-list-create'),
-    path('reviews/<int:pk>/', ReviewDeleteView.as_view(), name='review-delete'),
-    path('categories/', GenresListCreateView.as_view(), name='category-list-create'),
-    path('categories/<slug:cat_slug>/', GenresDetailView.as_view(), name='category-detail'),
-    path('genres/', TagsListCreateView.as_view(), name='genre-list-create'),
-    path('genres/<slug:genre_slug>/', TagsDetailView.as_view(), name='genre-detail'),
+    path('api/', include(router.urls)),
+##    path('api/filters/', filters, name='filters'),
 ]

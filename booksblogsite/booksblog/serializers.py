@@ -3,10 +3,11 @@ from .models import Book, Genres, Tags, ReadingStatus, Review
 from django.contrib.auth import get_user_model
 
 class BookSerializer(serializers.ModelSerializer):
-
+    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    author_display = serializers.StringRelatedField(source='author', read_only=True)
     class Meta:
         model = Book
-        fields = ['id', 'title', 'description', 'time_create', 'time_update', 'photo', 'slug', 'tags', 'genres']
+        fields = ['id', 'title', 'author', 'author_display', 'description', 'time_create', 'time_update', 'photo', 'slug', 'tags', 'genres']
         read_only_fields = ['time_create', 'time_update']
 
     def validate_title(self, value):

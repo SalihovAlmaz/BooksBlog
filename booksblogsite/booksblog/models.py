@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 class Book(models.Model):
 
     title = models.CharField(max_length=255,verbose_name='Название')
-    author = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, related_name='books', null=True, blank=True, verbose_name='Автор')
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='books', null=True, blank=True, verbose_name='Автор')
     description = models.TextField(blank=True,verbose_name='Описание')
     time_create = models.DateTimeField(auto_now_add=True,verbose_name='Время создания',validators=[MinLengthValidator(5,message='Минимум 5 символов')])
     time_update = models.DateTimeField(auto_now=True,verbose_name='Время изменения')
