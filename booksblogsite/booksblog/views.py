@@ -21,7 +21,7 @@ class BookPagination(PageNumberPagination):
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrAdmin]
     pagination_class = BookPagination
     filterset_fields = ['title', 'author', 'genres']
     search_fields = ['title', 'author__username', 'description']
