@@ -18,6 +18,7 @@ services:
     container_name: booksblog
     depends_on:
       - db
+    network_mode: host
     env_file:
       - .env
     environment:

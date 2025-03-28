@@ -3,6 +3,7 @@ FROM python:3.12-slim AS builder
 WORKDIR /tmp
 COPY requirements.txt .
 
+RUN pip install psycopg2-binary
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /tmp/wheels -r requirements.txt
 
 FROM python:3.12-slim

@@ -1,81 +1,97 @@
+from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from rest_framework import status
-from django.urls import reverse
-from django.contrib.auth import get_user_model
-from .models import Book, ReadingStatus, Review
-from datetime import date
+from booksblog.models import Book, Genres, Tags, Review, ReadingStatus
 
-class ReadingStatusTests(APITestCase):
+User = get_user_model()
 
+
+class BookAPITestCase(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create_user(username='testuser', password='password')
-        self.book = Book.objects.create(title="Test Book", author="Author", description="Test description", published_date="2021-01-01")
-        self.client.login(username='testuser', password='password')
+        self.user = User.objects.create_user(username='testuser', password='password123')
+        self.client.login(username='testuser', password='password123')
+        self.genre = Genres.objects.create(name='Fantasy', slug='fantasy')
+        self.tag = Tags.objects.create(name='Magic', slug='magic')
+        self.book = Book.objects.create(title='Test Book', slug='test-book', author=self.user)
+        self.book.tags.add(self.tag)
 
-    def test_create_reading_status(self):
-        url = reverse('reading-status-list-create')
-        data = {'book': self.book.id, 'status': 'reading', 'start_date': str(date.today())}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(ReadingStatus.objects.count(), 1)
-
-    def test_update_reading_status(self):
-        status_obj = ReadingStatus.objects.create(user=self.user, book=self.book, status='reading', start_date=date.today())
-        url = reverse('reading-status-detail', kwargs={'pk': status_obj.id})
-        data = {'status': 'finished', 'finish_date': str(date.today())}
-        response = self.client.patch(url, data, format='json')
+    def test_get_books_list(self):
+        response = self.client.get('/api/books/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        status_obj.refresh_from_db()
-        self.assertEqual(status_obj.status, 'finished')
+        self.assertIn("Test Book", response.data["results"][0]["title"])
 
-    def test_delete_reading_status(self):
-        status_obj = ReadingStatus.objects.create(user=self.user, book=self.book, status='reading', start_date=date.today())
-        url = reverse('reading-status-detail', kwargs={'pk': status_obj.id})
-        response = self.client.delete(url)
+    def test_get_book_detail(self):
+        response = self.client.get(f'/api/books/{self.book.slug}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['title'], 'Test Book')
+
+    def test_create_book_unauthorized(self):
+        self.client.logout()
+        response = self.client.post('/api/books/', {'title': 'New Book', 'slug': 'new-book'})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_create_book_authorized(self):
+        response = self.client.post(
+            '/api/books/',
+            {'title': 'New Book', 'slug': 'new-book', 'author': self.user.id, 'genres': [self.genre.id]}
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Book.objects.count(), 2)
+
+    def test_delete_book(self):
+        response = self.client.delete(f'/api/books/{self.book.slug}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(ReadingStatus.objects.count(), 0)
+        self.assertEqual(Book.objects.count(), 0)
 
-    def test_invalid_finish_date(self):
-        url = reverse('reading-status-list-create')
-        data = {'book': self.book.id, 'status': 'finished', 'start_date': str(date.today()), 'finish_date': str(date.today())}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('finish_date', response.data)
 
-class ReviewTests(APITestCase):
+class UserAuthTestCase(APITestCase):
+    def test_user_registration(self):
+        response = self.client.post('/api/register/', {'username': 'newuser', 'password': 'password123'})
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(User.objects.filter(username='newuser').exists())
 
+    def test_user_login(self):
+        User.objects.create_user(username='testuser', password='password123')
+        response = self.client.post('/api/token/', {'username': 'testuser', 'password': 'password123'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.data)
+
+
+class ReviewAPITestCase(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create_user(username='testuser', password='password')
-        self.book = Book.objects.create(title="Test Book", author="Author", description="Test description", published_date="2021-01-01")
-        self.client.login(username='testuser', password='password')
+        self.user = User.objects.create_user(username='testuser', password='password123')
+        self.client.login(username='testuser', password='password123')
+        self.book = Book.objects.create(title='Test1 Book', slug='test-book', author=self.user)
+        Review.objects.all().delete()
 
     def test_create_review(self):
-        url = reverse('review-list-create', kwargs={'book_id': self.book.id})
-        data = {'review_text': 'Great book!', 'rating': 5}
-        response = self.client.post(url, data, format='json')
+        response = self.client.post(
+            f'/api/books/{self.book.slug}/reviews/',
+            {'review_text': 'Amazing!', 'rating': 5}
+        )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Review.objects.count(), 1)
-        self.assertEqual(self.book.average_rating, 5.0)
 
-    def test_create_review_duplicate(self):
-        Review.objects.create(user=self.user, book=self.book, review_text="Good book", rating=4)
-        url = reverse('review-list-create', kwargs={'book_id': self.book.id})
-        data = {'review_text': 'Amazing!', 'rating': 5}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('non_field_errors', response.data)
+    def test_get_reviews(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(f'/api/books/{self.book.slug}/reviews/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('Great book!', response.data[0]['review_text'])
 
-    def test_delete_review(self):
-        review = Review.objects.create(user=self.user, book=self.book, review_text="Great book", rating=5)
-        url = reverse('review-delete', kwargs={'pk': review.id})
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Review.objects.count(), 0)
-        self.assertEqual(self.book.average_rating, None)  # Проверяем, что рейтинг обновился
 
-    def test_rating_validation(self):
-        url = reverse('review-list-create', kwargs={'book_id': self.book.id})
-        data = {'review_text': 'Bad book', 'rating': 6}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('rating', response.data)
+class ReadingStatusAPITestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password123')
+        self.book = Book.objects.create(title='Test Book', slug='test-book', author=self.user)
+        self.reading_status = ReadingStatus.objects.create(user=self.user, book=self.book, status='reading')
+        self.client.login(username='testuser', password='password123')
+
+    def test_create_reading_status(self):
+        self.client.login(username='testuser', password='password123')
+        response = self.client.post('/api/reading-status/', {'book': self.book.id, 'status': 'finished'})
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_get_reading_status(self):
+        self.client.login(username='testuser', password='password123')
+        response = self.client.get('/api/reading-status/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('reading', response.data[0]['status'])
